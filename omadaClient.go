@@ -7,9 +7,19 @@ import (
 
 type OmadaClient struct {
 	Host       string
-	username   string
-	password   string
+	Site       string
+	OmadacId   string
 	HTTPClient *http.Client
+}
+
+type ApiInfo struct {
+	ErrorCode int           `json:errorCode`
+	Msg       string        `json:msg`
+	Result    ApiInfoResult `json:result`
+}
+
+type ApiInfoResult struct {
+	// TODO
 }
 
 type ClientToken struct {
@@ -27,11 +37,10 @@ type errorResponse struct {
 	Message interface{} `json:"message"`
 }
 
-func NewOmadaClient(host string, username string, password string) *OmadaClient {
+func NewOmadaClient(host string, site string) *OmadaClient {
 	client := &OmadaClient{
-		Host:     host,
-		username: username,
-		password: password,
+		Host: host,
+		Site: site,
 		HTTPClient: &http.Client{
 			Timeout: time.Minute,
 		},
@@ -40,7 +49,6 @@ func NewOmadaClient(host string, username string, password string) *OmadaClient 
 	return client
 }
 
-func (c OmadaClient) Login() *ClientToken {
-
+func (c OmadaClient) Login(user string, password string) *ClientToken {
 	return &ClientToken{}
 }
