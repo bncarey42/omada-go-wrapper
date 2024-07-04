@@ -14,17 +14,6 @@ const (
 )
 
 func main() {
-	//	client := &http.Client{}
-
-	// SET UP
-
-	//	infoURL := fmt.Sprintf("%s/%s", host, "/info")
-	//	fmt.Printf("ATTEMPTING TO GET INFO \n")
-	//	r, err := http.Get(infoURL)
-	//	defer func() { _ = r.Body.Close() }()
-	//	body, _ := io.ReadAll(r.Body)
-	//	fmt.Printf("%s", body)
-
 	// CAL API
 
 	//	requestURL := fmt.Sprintf("%s/v2/%s", host, "login")
