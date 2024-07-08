@@ -74,7 +74,7 @@ func (c OmadaClient) BuildURL(slug string) (string, error) {
 		c.ApiInfo = &apiInfo.Result
 	}
 
-	return fmt.Sprintf("%s/v%d/%s/%s", c.Host, c.ApiInfo.APIVer, c.ApiInfo.OmadacID, slug), nil
+	return fmt.Sprintf("%s/v%s/%s/%s", c.Host, c.ApiInfo.APIVer, c.ApiInfo.OmadacID, slug), nil
 }
 
 func (c OmadaClient) GetApiInfo() (*ApiInfo, error) {
