@@ -1,29 +1,41 @@
 package main
 
 import (
-	"crypto/tls"
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"io"
 	"log"
 	"net/http"
-	"time"
+	"strings"
 )
 
 type OmadaClient struct {
 	Host       string
 	Site       string
-	ApiInfo    *ApinInfoResult
+	BaseApiUrl string
+	OmadacID   string
+	Token      *authResult
 	HTTPClient *http.Client
 }
 
-type ApiInfo struct {
-	ErrorCode int            `json:"errorCode"`
-	Msg       string         `json:"msg"`
-	Result    ApinInfoResult `json:"result"`
+type HTTPMethod string
+
+const (
+	GET HTTPMethod = iota
+	POST
+	PUT
+	PATCH
+	DELETE
+)
+
+type apiInfo struct {
+	ErrorCode int           `json:"errorCode"`
+	Message   string        `json:"msg"`
+	Result    apiInfoResult `json:"result"`
 }
 
-type ApinInfoResult struct {
+type apiInfoResult struct {
 	ControllerVer  string `json:"controllerVer"`
 	APIVer         string `json:"apiVer"`
 	Configured     bool   `json:"configured"`
@@ -35,71 +47,88 @@ type ApinInfoResult struct {
 	MspMode        bool   `json:"mspMode"`
 }
 
-type ClientToken struct {
-	OmadacId string `json:"omadac_id"`
-	Token    string `json:"token"`
+type authResponse struct {
+	ErrorCode int        `json:"errorCode"`
+	Message   string     `json:"msg"`
+	Result    authResult `json:"result"`
+}
+type authResult struct {
+	AccessToken  string `json:"accessToken"`
+	TokenType    string `json:"tokenType"`
+	ExpiresIn    int    `json:"expiresIn"`
+	RefreshToken string `json:"refreshToken"`
 }
 
-type successResponse struct {
-	Code int         `json:"code"`
-	Data interface{} `json:"data"`
+func NewOmadaClient(host string, site string, apiUrl string, omadacId string, httpClient *http.Client) *OmadaClient {
+	return &OmadaClient{
+		Host:       host,
+		Site:       site,
+		BaseApiUrl: apiUrl,
+		OmadacID:   omadacId,
+		Token:      nil,
+		HTTPClient: httpClient,
+	}
 }
 
-type errorResponse struct {
-	Code    int         `json:"code"`
-	Message interface{} `json:"message"`
+func (c OmadaClient) buildURL(slug string, params map[string]string) string {
+	var paramarr []string
+	for key, value := range params {
+		paramarr = append(paramarr, fmt.Sprintf("%s=%s", key, value))
+	}
+	return fmt.Sprintf("%s/%s/%s?%s", c.Host, c.BaseApiUrl, slug, strings.Join(paramarr, "&"))
 }
 
-func NewOmadaClient(host string, site string) *OmadaClient {
-	tr := &http.Transport{
-		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
-	}
-	client := &OmadaClient{
-		Host: host,
-		Site: site,
-		HTTPClient: &http.Client{
-			Transport: tr,
-			Timeout:   time.Minute,
-		},
-	}
-	return client
-}
+func (c OmadaClient) Login(apiClientId string, apiToken string) error {
+	var token authResponse
 
-func (c OmadaClient) BuildURL(slug string) (string, error) {
-	if c.ApiInfo == nil {
-		apiInfo, err := c.GetApiInfo()
-		if err != nil {
-			return "", err
-		}
-		c.ApiInfo = &apiInfo.Result
-	}
-
-	return fmt.Sprintf("%s/v%s/%s/%s", c.Host, c.ApiInfo.APIVer, c.ApiInfo.OmadacID, slug), nil
-}
-
-func (c OmadaClient) GetApiInfo() (*ApiInfo, error) {
-	var apiInfo ApiInfo
-	ret, err := c.HTTPClient.Get(fmt.Sprintf("%s/info", c.Host))
-	if err != nil {
-		log.Fatalf("Unable to get apiInfo due to %s", err.Error())
-		return nil, err
-	}
-	defer func() { _ = ret.Body.Close() }()
-	body, _ := io.ReadAll(ret.Body)
-	err = json.Unmarshal(body, &apiInfo)
-	if err != nil {
-		log.Fatalf("Unable to marshal JSON due to %s", err)
-		return nil, err
-	}
-	return &apiInfo, nil
-}
-
-func (c OmadaClient) Login(user string, password string) (*ClientToken, error) {
-	url, err := c.BuildURL("login")
-	if err != nil {
-		return nil, err
-	}
+	url := c.buildURL("authorize/token", map[string]string{"grant_type": "client_credentials"})
 
 	log.Printf("login url::: %s", url)
-	return nil, nil
+
+	jsonBody := []byte(fmt.Sprintf(`{"omadacId": "%s", "client_id": "%s", "client_secret": "%s"}`, c.OmadacID, apiClientId, apiToken))
+	log.Println(string(jsonBody))
+	bodyReader := bytes.NewReader(jsonBody)
+
+	ret, err := c.HTTPClient.Post(url, "application/json", bodyReader)
+	if err != nil {
+		log.Fatalf("Unable to get access token due to %s", err.Error())
+		return err
+	}
+	defer func() { _ = ret.Body.Close() }()
+	body, err := io.ReadAll(ret.Body)
+	if err != nil {
+		log.Fatalf("Error reading Login body::: %s", err.Error())
+		return err
+	}
+	err = json.Unmarshal(body, &token)
+	if err != nil {
+		log.Fatalf("error Unmarshalling::: %s", err.Error())
+		return err
+	}
+	log.Printf("ERROR_CODE: %d, MESSAGE: %s", token.ErrorCode, token.Message)
+
+	c.Token = &token.Result
+
+	return nil
+}
+
+func (c OmadaClient) Request(method HTTPMethod, urlSlug string, params map[string]string) (*{}, error:w) {
+	url := c.buildURL(urlSlug, params)
+	log.Printf("%s :: %s", method, url)
+	var bodyReader io.Reader
+
+	request, err := http.NewRequest(method, url, bodyReader)
+	if err != nil {
+		log.Fatalf("ERROR :: Making request :: %s", err.Error())
+	}
+
+  request.Header.Add("access", fmt.Sprintf("AccessToken=%s", c.Token.AccessToken))
+	switch method {
+	case "POST":
+
+	case "GET":
+	default:
+	}
+
+	request, err := http.NewRequest(httpMethod, url, body)
 }
