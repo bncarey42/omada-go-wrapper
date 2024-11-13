@@ -22,11 +22,11 @@ type OmadaClient struct {
 type HTTPMethod string
 
 const (
-	GET HTTPMethod = iota
-	POST
-	PUT
-	PATCH
-	DELETE
+	GET    HTTPMethod = "GET"
+	POST   HTTPMethod = "POST"
+	PUT    HTTPMethod = "PUT"
+	PATCH  HTTPMethod = "PATCH"
+	DELETE HTTPMethod = "DELETE"
 )
 
 type apiInfo struct {
@@ -112,17 +112,17 @@ func (c OmadaClient) Login(apiClientId string, apiToken string) error {
 	return nil
 }
 
-func (c OmadaClient) Request(method HTTPMethod, urlSlug string, params map[string]string) (*{}, error:w) {
+func (c OmadaClient) Request(method HTTPMethod, urlSlug string, params map[string]string) (*any, error) {
 	url := c.buildURL(urlSlug, params)
 	log.Printf("%s :: %s", method, url)
 	var bodyReader io.Reader
 
-	request, err := http.NewRequest(method, url, bodyReader)
+	request, err := http.NewRequest(method.String(), url, bodyReader)
 	if err != nil {
 		log.Fatalf("ERROR :: Making request :: %s", err.Error())
 	}
 
-  request.Header.Add("access", fmt.Sprintf("AccessToken=%s", c.Token.AccessToken))
+	request.Header.Add("access", fmt.Sprintf("AccessToken=%s", c.Token.AccessToken))
 	switch method {
 	case "POST":
 
