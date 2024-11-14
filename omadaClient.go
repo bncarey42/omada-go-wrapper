@@ -19,14 +19,18 @@ type OmadaClient struct {
 	HTTPClient *http.Client
 }
 
-type HTTPMethod string
+type HTTPMethod struct{ method string }
 
-const (
-	GET    HTTPMethod = "GET"
-	POST   HTTPMethod = "POST"
-	PUT    HTTPMethod = "PUT"
-	PATCH  HTTPMethod = "PATCH"
-	DELETE HTTPMethod = "DELETE"
+func (h HTTPMethod) String() string {
+	return h.method
+}
+
+var (
+	GET    = HTTPMethod{"GET"}
+	POST   = HTTPMethod{"POST"}
+	PUT    = HTTPMethod{"PUT"}
+	PATCH  = HTTPMethod{"PATCH"}
+	DELETE = HTTPMethod{"DELETE"}
 )
 
 type apiInfo struct {
@@ -112,21 +116,22 @@ func (c OmadaClient) Login(apiClientId string, apiToken string) error {
 	return nil
 }
 
-func (c OmadaClient) Request(method HTTPMethod, urlSlug string, params map[string]string) (*any, error) {
+func (c OmadaClient) Request(method string, urlSlug string, params map[string]string) (*any, error) {
 	url := c.buildURL(urlSlug, params)
 	log.Printf("%s :: %s", method, url)
 	var bodyReader io.Reader
 
-	request, err := http.NewRequest(method.String(), url, bodyReader)
+	request, err := http.NewRequest(method, url, bodyReader)
 	if err != nil {
 		log.Fatalf("ERROR :: Making request :: %s", err.Error())
 	}
 
 	request.Header.Add("access", fmt.Sprintf("AccessToken=%s", c.Token.AccessToken))
 	switch method {
-	case "POST":
-
-	case "GET":
+	case POST.method:
+	case PATCH.method:
+	case DELETE.method:
+	case GET.method:
 	default:
 	}
 
