@@ -12,34 +12,20 @@ import (
 
 type OmadaClient struct {
 	Host       string
-	Site       string
 	BaseApiUrl string
+	ApiVersion string
 	OmadacID   string
-	Token      *authResult
+	Token      *authResponse
 	HTTPClient *http.Client
 }
 
-type HTTPMethod struct{ method string }
-
-func (h HTTPMethod) String() string {
-	return h.method
+type ApiResponse[T any] struct {
+	ErrorCode int    `json:"errorCode"`
+	Message   string `json:"msg"`
+	Result    T      `json:"result"`
 }
 
-var (
-	GET    = HTTPMethod{"GET"}
-	POST   = HTTPMethod{"POST"}
-	PUT    = HTTPMethod{"PUT"}
-	PATCH  = HTTPMethod{"PATCH"}
-	DELETE = HTTPMethod{"DELETE"}
-)
-
-type apiInfo struct {
-	ErrorCode int           `json:"errorCode"`
-	Message   string        `json:"msg"`
-	Result    apiInfoResult `json:"result"`
-}
-
-type apiInfoResult struct {
+type apiInfoResponse struct {
 	ControllerVer  string `json:"controllerVer"`
 	APIVer         string `json:"apiVer"`
 	Configured     bool   `json:"configured"`
@@ -52,40 +38,38 @@ type apiInfoResult struct {
 }
 
 type authResponse struct {
-	ErrorCode int        `json:"errorCode"`
-	Message   string     `json:"msg"`
-	Result    authResult `json:"result"`
-}
-type authResult struct {
 	AccessToken  string `json:"accessToken"`
 	TokenType    string `json:"tokenType"`
 	ExpiresIn    int    `json:"expiresIn"`
 	RefreshToken string `json:"refreshToken"`
 }
 
-func NewOmadaClient(host string, site string, apiUrl string, omadacId string, httpClient *http.Client) *OmadaClient {
+func NewOmadaClient(host string, apiUrl string, omadacId string, apiVersion string, httpClient *http.Client) *OmadaClient {
 	return &OmadaClient{
 		Host:       host,
-		Site:       site,
 		BaseApiUrl: apiUrl,
+		ApiVersion: apiVersion,
 		OmadacID:   omadacId,
 		Token:      nil,
 		HTTPClient: httpClient,
 	}
 }
 
-func (c OmadaClient) buildURL(slug string, params map[string]string) string {
+func (c OmadaClient) buildURL(slug string, params map[string]string, useVersion bool) string {
 	var paramarr []string
 	for key, value := range params {
 		paramarr = append(paramarr, fmt.Sprintf("%s=%s", key, value))
+	}
+	if useVersion {
+		return fmt.Sprintf("%s/%s/%s/%s?%s", c.Host, c.BaseApiUrl, c.ApiVersion, slug, strings.Join(paramarr, "&"))
 	}
 	return fmt.Sprintf("%s/%s/%s?%s", c.Host, c.BaseApiUrl, slug, strings.Join(paramarr, "&"))
 }
 
 func (c OmadaClient) Login(apiClientId string, apiToken string) error {
-	var token authResponse
+	var token ApiResponse[authResponse]
 
-	url := c.buildURL("authorize/token", map[string]string{"grant_type": "client_credentials"})
+	url := c.buildURL("authorize/token", map[string]string{"grant_type": "client_credentials"}, false)
 
 	log.Printf("login url::: %s", url)
 
@@ -116,24 +100,68 @@ func (c OmadaClient) Login(apiClientId string, apiToken string) error {
 	return nil
 }
 
-func (c OmadaClient) Request(method string, urlSlug string, params map[string]string) (*any, error) {
-	url := c.buildURL(urlSlug, params)
-	log.Printf("%s :: %s", method, url)
-	var bodyReader io.Reader
+func (c OmadaClient) NewLogin(apiClientId string, apiToken string) error {
+	url := c.buildURL("authorize/token", map[string]string{"grant_type": "client_credentials"}, false)
 
-	request, err := http.NewRequest(method, url, bodyReader)
+	log.Printf("login url::: %s", url)
+
+	jsonBody := []byte(fmt.Sprintf(`{"omadacId": "%s", "client_id": "%s", "client_secret": "%s"}`, c.OmadacID, apiClientId, apiToken))
+	log.Println(string(jsonBody))
+
+	token, err := HttpRequest[authResponse]("POST", url, jsonBody, false, c)
 	if err != nil {
-		log.Fatalf("ERROR :: Making request :: %s", err.Error())
+		log.Fatalf("ERROR ::: Getting Auth Token :: %s", err.Error())
 	}
 
-	request.Header.Add("access", fmt.Sprintf("AccessToken=%s", c.Token.AccessToken))
+	c.Token = token
+
+	return nil
+}
+
+func HttpRequest[T any](method string, url string, jsonBody []byte, doAuth bool, client OmadaClient) (*T, error) {
+	var response *ApiResponse[T]
+	var request *http.Request
+
 	switch method {
-	case POST.method:
-	case PATCH.method:
-	case DELETE.method:
-	case GET.method:
+	case "POST":
+	case "PUT":
+	case "PATCH":
+		bodyReader := bytes.NewReader(jsonBody)
+
+		request, err := http.NewRequest(method, url, bodyReader)
+		if err != nil {
+			log.Fatalf("ERROR::Unable to build request::%s:%s:%s", method, url, err.Error())
+			return nil, err
+		}
+		request.Header.Add("Content-Type", "application/json")
+		break
+
+	case "GET":
 	default:
+		break
 	}
 
-	request, err := http.NewRequest(httpMethod, url, body)
+	if doAuth {
+		request.Header.Add("access", fmt.Sprintf("Bearer:%s", client.Token))
+	}
+
+	ret, err := client.HTTPClient.Do(request)
+	if err != nil {
+		log.Fatalf("ERROR::Unable to do request::%s:%s:%s", method, url, err.Error())
+		return nil, err
+	}
+
+	defer func() { _ = ret.Body.Close() }()
+	body, err := io.ReadAll(ret.Body)
+	if err != nil {
+		log.Fatalf("Error reading response body::: %s", err.Error())
+		return nil, err
+	}
+	err = json.Unmarshal(body, &response)
+	if err != nil {
+		log.Fatalf("error Unmarshalling::: %s", err.Error())
+		return nil, err
+	}
+
+	return &response.Result, nil
 }

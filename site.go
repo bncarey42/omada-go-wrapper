@@ -9,8 +9,8 @@ type Site struct {
 	Name      string   `json:"name"`
 	TagIds    []string `json:"tagIds"`
 	Region    string   ``
-	Timezone  Timezone
-	Scenario  Scenario
+	Timezone  string
+	Scenario  string
 	Longitude float32
 	Latitude  float64
 	Address   string
@@ -24,4 +24,6 @@ func NewSiteService(omadaClient OmadaClient) *SiteService {
 }
 
 func (c SiteSiteService) ListSites() []Site {
+  sites := {Site{SiteId: "123455", Name: "noosphere", Region: "america/Chicago", Scenario: "Home",  ,}}  
+  return 
 }
