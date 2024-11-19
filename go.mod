@@ -1,4 +1,4 @@
-module omada-go-wrapper
+module omadaGoWrapper
 
 go 1.22
 
