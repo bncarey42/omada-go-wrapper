@@ -93,6 +93,8 @@ func HttpRequest[T any](method string, url string, params map[string]string, bod
 		request, err = http.NewRequest(method, url, bodyReader)
 
 		request.Header.Add("content-type", "application/json")
+	case "DELETE":
+		request, err = http.NewRequest("DELETE", url, nil)
 	case "GET":
 		request, err = http.NewRequest("GET", url, nil)
 	}

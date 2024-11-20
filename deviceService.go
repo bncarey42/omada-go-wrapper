@@ -33,14 +33,15 @@ type DeviceInfo struct {
 
 type DeviceService struct {
 	omadaClient *OmadaClient
+	baseUrl     string
 }
 
 func NewDeviceService(client *OmadaClient) *DeviceService {
-	return &DeviceService{omadaClient: client}
+	return &DeviceService{omadaClient: client, baseUrl: "sites"}
 }
 
 func (ds *DeviceService) GetSiteDeviceList(siteId string, page int32, pageSize int32) ([]DeviceInfo, error) {
-	url := ds.omadaClient.BuildApiURL(fmt.Sprintf("sites/%s/devices", siteId))
+	url := ds.omadaClient.BuildApiURL(fmt.Sprintf("%s/%s/devices", ds.baseUrl, siteId))
 	devices, err := HttpRequest[PaginatedApiData[DeviceInfo]](
 		"GET",
 		url,
