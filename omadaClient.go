@@ -30,6 +30,13 @@ type apiResponse[T any] struct {
 	Result    T      `json:"result"`
 }
 
+type PaginatedApiData[T any] struct {
+	TotalRows   int64 `json:"totalRows"`
+	CurrentPage int32 `json:"currentPage"`
+	CurrentSize int32 `json:"currentSize"`
+	Data        []T   `json:"data"`
+}
+
 func NewOmadaClient(baseUrl string, apiVersion string, omadacId string, httpClient *http.Client) *OmadaClient {
 	return &OmadaClient{
 		baseUrl:    baseUrl,
@@ -86,6 +93,8 @@ func HttpRequest[T any](method string, url string, params map[string]string, bod
 		request, err = http.NewRequest(method, url, bodyReader)
 
 		request.Header.Add("content-type", "application/json")
+	case "DELETE":
+		request, err = http.NewRequest("DELETE", url, nil)
 	case "GET":
 		request, err = http.NewRequest("GET", url, nil)
 	}
@@ -118,7 +127,7 @@ func HttpRequest[T any](method string, url string, params map[string]string, bod
 	defer func() { _ = resp.Body.Close() }()
 	responseBody, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return nil, fmt.Errorf("Error reading response body : %s", err.Error())
+		return nil, fmt.Errorf("error reading response body : %s", err.Error())
 	}
 
 	var response *apiResponse[T]
@@ -129,7 +138,7 @@ func HttpRequest[T any](method string, url string, params map[string]string, bod
 	}
 
 	if response.ErrorCode != 0 {
-		return nil, fmt.Errorf("Omada Controller Encountered an Error : %d : %s : %s", response.ErrorCode, response.Message, request.URL.String())
+		return nil, fmt.Errorf("omada controller encountered an error : %d : %s : %s", response.ErrorCode, response.Message, request.URL.String())
 	}
 
 	return &response.Result, nil

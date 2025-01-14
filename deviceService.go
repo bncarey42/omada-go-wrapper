@@ -31,31 +31,25 @@ type DeviceInfo struct {
 	FirmwareVersion  string   `json:"firmwareVersion"`
 }
 
-type DeviceResult struct {
-	TotalRows   int64        `json:"totalRows"`
-	CurrentPage int32        `json:"currentPage"`
-	CurrentSize int32        `json:"currentSize"`
-	Data        []DeviceInfo `json:"data"`
-}
-
 type DeviceService struct {
 	omadaClient *OmadaClient
+	baseUrl     string
 }
 
 func NewDeviceService(client *OmadaClient) *DeviceService {
-	return &DeviceService{omadaClient: client}
+	return &DeviceService{omadaClient: client, baseUrl: "sites"}
 }
 
 func (ds *DeviceService) GetSiteDeviceList(siteId string, page int32, pageSize int32) ([]DeviceInfo, error) {
-	url := ds.omadaClient.BuildApiURL(fmt.Sprintf("sites/%s/devices", siteId))
-	devices, err := HttpRequest[DeviceResult](
+	url := ds.omadaClient.BuildApiURL(fmt.Sprintf("%s/%s/devices", ds.baseUrl, siteId))
+	devices, err := HttpRequest[PaginatedApiData[DeviceInfo]](
 		"GET",
 		url,
 		map[string]string{"page": fmt.Sprint(page), "pageSize": fmt.Sprint(pageSize)},
 		nil,
 		ds.omadaClient)
 	if err != nil {
-		return nil, fmt.Errorf("Error getting SiteDeviceList :: %s", err.Error())
+		return nil, fmt.Errorf("error getting SiteDeviceList :: %s", err.Error())
 	}
 
 	return devices.Data, nil
