@@ -63,8 +63,8 @@ func main() {
 
 	fmt.Println()
 
-	err = siteService.CreateNewSite("test", "United States", "America/Chicago", "Home", "", "")
-	if err != nil {
+	err = siteService.CreateNewSite("test", "United States", "America/Chicago", "Home", os.Getenv("DEVICE_UID"), os.Getenv("DEVICE_PWD"))
+	for err != nil {
 		log.Fatalf("err created new site :: %s", err.Error())
 	}
 
@@ -88,42 +88,37 @@ func main() {
 	fmt.Println("GOT SITE INFO")
 
 	fmt.Println("\t", site.Name, site.SiteID)
-	/*
-	   siteId := site.SiteID
+	siteId := site.SiteID
 
-	   	fmt.Println()
+	fmt.Println()
 
-	   	   err = siteService.DeleteSite(siteId)
+	err = siteService.DeleteSite(siteId)
+	if err != nil {
+		log.Fatalf("Error deleteing Site ::: %s", err)
+	}
 
-	   	   	if err != nil {
-	   	   		log.Fatalf("Error deleteing Site ::: %s", err)
-	   	   	}
+	fmt.Println("\t", "DELETED SITE", siteId)
 
-	   	   fmt.Println("\t", "DELETED SITE", siteId)
+	fmt.Println()
 
-	   	   fmt.Println()
+	sites, err = siteService.GetSiteList(1, 200)
+	if err != nil {
+		log.Fatalf("Error getting Site List ::: %s", err)
+	}
 
-	   	   sites, err = siteService.GetSiteList(1, 200)
+	for _, site := range sites {
+		fmt.Println("\t", site.Name, site.SiteID)
+	}
 
-	   	   	if err != nil {
-	   	   		log.Fatalf("Error getting Site List ::: %s", err)
-	   	   	}
+	deviceService := NewDeviceService(client)
+	devices, err := deviceService.GetSiteDeviceList(siteId, 1, 200)
+	if err != nil {
+		log.Fatalf("Error getting Device List ::: %s", err.Error())
+	}
 
-	   	   	for _, site := range sites {
-	   	   		fmt.Println("\t", site.Name, site.SiteID)
-	   	   	}
+	log.Println("GOT DEVICES")
 
-	   	   deviceService := NewDeviceService(client)
-	   	   devices, err := deviceService.GetSiteDeviceList(siteId, 1, 200)
-
-	   	   	if err != nil {
-	   	   		log.Fatalf("Error getting Device List ::: %s", err.Error())
-	   	   	}
-
-	   	   	log.Println("GOT DEVICES")
-
-	   	   		for _, device := range devices {
-	   	   			fmt.Println("\t", device.Name, device.Mac, device.IP, device.Type)
-	   	   		}
-	*/
+	for _, device := range devices {
+		fmt.Println("\t", device.Name, device.Mac, device.IP, device.Type)
+	}
 }
