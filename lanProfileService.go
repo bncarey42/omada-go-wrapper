@@ -51,6 +51,32 @@ type LanProfileConfig struct {
 	DhcpL2RelaySettings           *DhcpL2RelaySettings `json:"dhcpL2RelaySettings,omitempty"`
 }
 
+type LanProfileSummary struct {
+	ID                            string              `json:"id"`
+	Flag                          int                 `json:"flag"`
+	Name                          string              `json:"name"`
+	Poe                           int                 `json:"poe"`
+	NativeNetworkID               string              `json:"nativeNetworkId"`
+	TagNetworkIds                 []interface{}       `json:"tagNetworkIds"`
+	UntagNetworkIds               []interface{}       `json:"untagNetworkIds"`
+	VoiceNetworkID                string              `json:"voiceNetworkId"`
+	Dot1X                         int                 `json:"dot1x"`
+	PortIsolationEnable           bool                `json:"portIsolationEnable"`
+	LldpMedEnable                 bool                `json:"lldpMedEnable"`
+	TopoNotifyEnable              bool                `json:"topoNotifyEnable"`
+	BandWidthCtrlType             int                 `json:"bandWidthCtrlType"`
+	StormCtrl                     StormCtrl           `json:"stormCtrl"`
+	BandCtrl                      BandCtrl            `json:"bandCtrl"`
+	SpanningTreeEnable            bool                `json:"spanningTreeEnable"`
+	LoopbackDetectEnable          bool                `json:"loopbackDetectEnable"`
+	EeeEnable                     bool                `json:"eeeEnable"`
+	FlowControlEnable             bool                `json:"flowControlEnable"`
+	LoopbackDetectVlanBasedEnable bool                `json:"loopbackDetectVlanBasedEnable"`
+	DhcpL2RelaySettings           DhcpL2RelaySettings `json:"dhcpL2RelaySettings"`
+	Type                          int                 `json:"type"`
+	SupportESEnable               bool                `json:"supportESEnable"`
+}
+
 type LANProfileService struct {
 	omadaClient *OmadaClient
 	baseUrl     string
