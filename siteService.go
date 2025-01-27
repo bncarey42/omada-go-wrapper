@@ -1,10 +1,5 @@
 package main
 
-import (
-	"encoding/json"
-	"fmt"
-)
-
 type SiteSumaryInfo struct {
 	SiteID    string   `json:"siteId"`
 	Name      string   `json:"name"`
@@ -66,7 +61,7 @@ type DeviceAccountSetting struct {
 	Password string `json:"password"`
 }
 
-type createSiteEntity struct {
+type CreateSiteEntity struct {
 	Name                 string               `json:"name"`
 	Type                 *int                 `json:"type,omitempty"`
 	Region               string               `json:"region"`
@@ -79,51 +74,4 @@ type createSiteEntity struct {
 	DeviceAccountSetting DeviceAccountSetting `json:"deviceAccountSetting"`
 	SupportES            *bool                `json:"supportES,omitempty"`
 	SupportL2            *bool                `json:"supportL2,omitempty"`
-}
-
-type SiteService struct {
-	omadaClient *OmadaClient
-	baseUrl     string
-}
-
-func NewSiteService(client *OmadaClient) SiteService {
-	return SiteService{omadaClient: client, baseUrl: "sites"}
-}
-
-func (ss *SiteService) GetSiteList(page int32, pageSize int32) ([]SiteSumaryInfo, error) {
-	url := ss.omadaClient.BuildApiURL(ss.baseUrl)
-	query := map[string]string{"page": fmt.Sprint(page), "pageSize": fmt.Sprint(pageSize)}
-	sites, err := HttpRequest[PaginatedApiData[SiteSumaryInfo]]("GET", url, query, nil, ss.omadaClient)
-	if err != nil {
-		return nil, fmt.Errorf("error getting Site Sumaries %s", err.Error())
-	}
-	return sites.Data, nil
-}
-
-func (ss *SiteService) GetSiteInfo(siteId string) (*SiteEntity, error) {
-	url := ss.omadaClient.BuildApiURL(fmt.Sprintf("%s/%s", ss.baseUrl, siteId))
-	site, err := HttpRequest[SiteEntity]("GET", url, nil, nil, ss.omadaClient)
-	if err != nil {
-		return nil, fmt.Errorf("error getting Site Sumaries %s", err.Error())
-	}
-	return site, nil
-}
-
-func (ss *SiteService) CreateNewSite(name string, region string, timeZone string, senario string, deviceUserName string, devicePassword string, extra ...any) error {
-	siteEntity := createSiteEntity{Name: name, Region: region, TimeZone: timeZone, Scenario: senario, DeviceAccountSetting: DeviceAccountSetting{Username: deviceUserName, Password: devicePassword}}
-	url := ss.omadaClient.BuildApiURL(ss.baseUrl)
-	jsonBodyStr, err := json.Marshal(siteEntity)
-	if err != nil {
-		return fmt.Errorf("failed to marshal new site entity :: %s", err.Error())
-	}
-	body := []byte(jsonBodyStr)
-
-	_, err = HttpRequest[struct{}]("POST", url, nil, body, ss.omadaClient)
-	return err
-}
-
-func (ss *SiteService) DeleteSite(siteId string) error {
-	url := ss.omadaClient.BuildApiURL(fmt.Sprintf("%s/%s", ss.baseUrl, siteId))
-	_, err := HttpRequest[struct{}]("DELETE", url, nil, nil, ss.omadaClient)
-	return err
 }
