@@ -11,6 +11,14 @@ import (
 	"github.com/joho/godotenv"
 )
 
+type Date struct {
+	Month  int `json:"month"`
+	Serial int `json:"serial"`
+	Day    int `json:"day"`
+	Hour   int `json:"hour"`
+	Minute int `json:"minute"`
+}
+
 func main() {
 	godotenv.Load()
 
@@ -40,9 +48,10 @@ func main() {
 
 	fmt.Println()
 
-	siteService := NewEnytityService[CreateSiteEntity, SiteSumaryInfo, SiteEntity](client, "sites")
-
-	sites, err := siteService.GetEntitySummaryList(1, 200)
+	siteService := NewOmadaService[SiteEntity](client, "sites")
+	// var sites []SiteEntity
+	// var err error
+	sites, err := siteService.GetList(1, 200)
 	if err != nil {
 		log.Fatalf("Error getting Site List ::: %s", err)
 	}
@@ -55,31 +64,34 @@ func main() {
 
 	testSite := sites[0]
 
-	site, err := siteService.GetEntityInfo(testSite.SiteID)
+	site, err := siteService.GetOne(*testSite.SiteID)
 	if err != nil {
-		log.Fatalf("Error getting Site %s ::: %s", testSite.SiteID, err.Error())
+		log.Fatalf("Error getting Site %s ::: %s", *testSite.SiteID, err.Error())
 	}
 	fmt.Println("\t", site.Name, site.SiteID)
 
-	newSiteEntity := CreateSiteEntity{Name: "test", Region: "United States", TimeZone: "America/Chicago", Scenario: "Home", DeviceAccountSetting: DeviceAccountSetting{Username: os.Getenv("DEVICE_UID"), Password: os.Getenv("DEVICE_PWD")}}
-	err = siteService.CreateNewEntity(newSiteEntity)
+	newSiteEntity := SiteEntity{Name: "test", Region: "United States", TimeZone: "America/Chicago", Scenario: "Home", DeviceAccountSetting: DeviceAccountSetting{Username: os.Getenv("DEVICE_UID"), Password: os.Getenv("DEVICE_PWD")}}
+	err = siteService.Create(newSiteEntity)
 	if err != nil {
 		log.Fatalf("Error creating new Site :: %s", err.Error())
 	}
-
-	sites, err = siteService.GetEntitySummaryList(1, 200)
+	sites, err = siteService.GetList(1, 200)
 	if err != nil {
 		log.Fatalf("Error getting site list :: %s", err.Error())
 	}
 
 	newSite := sites[len(sites)-1]
-	fmt.Printf("\t New Site :: %s : %s", newSite.Name, newSite.SiteID)
+	fmt.Printf("\t New Site :: %s : %s", newSite.Name, *newSite.SiteID)
 
-	err = siteService.DeleteEntity(newSite.SiteID)
+	time.Sleep(10 * time.Second)
+
+	err = siteService.Delete(*newSite.SiteID)
 	if err != nil {
 		log.Fatalf("Error deleteing site :: %s", err.Error())
 	}
 	fmt.Println(fmt.Printf("Deleting site :: %s", newSite.Name))
+
+	// lanService := EntityService[]
 }
 
 /*sites, err = siteService.GetSiteList(1, 200)
